@@ -1,0 +1,45 @@
+stages:
+  - lint
+  - test
+  - build
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+before_script:
+  - pwd
+  - ls
+  - export JAVA_HOME=/opt/java/openjdk
+lint:
+  stage: lint
+  image: eclipse-temurin:22-jdk
+  script:
+    - ./mvnw clean install
+    # - ./mvnw checkstyle:check
+  only:
+    - merge_requests
+test:
+  stage: test
+  image: eclipse-temurin:22-jdk
+  script:
+    - ./mvnw test
+    - ./mvnw jacoco:report
+  artifacts:
+    reports:
+      junit: target/surefire-reports/TEST-*.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: target/site/jacoco/jacoco.xml
+  only:
+    - merge_requests
+build:
+  stage: build
+  image: eclipse-temurin:22-jdk
+  script:
+    - ./mvnw package
+  artifacts:
+    paths:
+      - target/*.jar
+  only:
+    - merge_requests
+workflow:
+  rules:
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "Developer"
